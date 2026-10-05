@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>60 Minute Exam Timer</title>
+<style>
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    font-family: Arial, Helvetica, sans-serif;
+    background: #111827;
+  }
+  body {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .timer {
+    width: 100vw;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    text-align: center;
+    transition: background .4s ease;
+  }
+  .label {
+    font-size: clamp(16px, 3vw, 32px);
+    font-weight: 700;
+    letter-spacing: .18em;
+    margin-bottom: 2vh;
+    opacity: .9;
+  }
+  .display {
+    font-variant-numeric: tabular-nums;
+    font-size: clamp(72px, 18vw, 220px);
+    line-height: .9;
+    font-weight: 800;
+    letter-spacing: .03em;
+  }
+  .warning { background: #7c2d12; }
+  .critical { background: #991b1b; }
+  .finished { background: #111827; }
+  .controls {
+    position: fixed;
+    bottom: 24px;
+    display: flex;
+    gap: 10px;
+  }
+  button {
+    border: 0;
+    border-radius: 10px;
+    padding: 11px 18px;
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+  }
+  .hint {
+    position: fixed;
+    bottom: 8px;
+    font-size: 11px;
+    opacity: .45;
+  }
+  @media (max-width: 600px) {
+    .controls { bottom: 12px; }
+    button { padding: 9px 13px; }
+  }
+</style>
+</head>
+<body>
+<div id="timer" class="timer">
+  <div class="label" id="label">EXAM TIME</div>
+  <div class="display" id="display">60:00</div>
+
+  <div class="controls">
+    <button id="start">START</button>
+    <button id="pause">PAUSE</button>
+    <button id="reset">RESET</button>
+  </div>
+  <div class="hint">Keyboard: Space = Start/Pause · R = Reset</div>
+</div>
+
+<script>
+(() => {
+  const TOTAL = 60 * 60;
+  let remaining = TOTAL;
+  let running = false;
+  let endAt = null;
+  let interval = null;
+
+  const timer = document.getElementById('timer');
+  const display = document.getElementById('display');
+  const label = document.getElementById('label');
+
+  function format(seconds) {
+    const m = Math.floor(seconds / 60);
+    const s = seconds % 60;
+    return String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0');
+  }
+
+  function render() {
+    display.textContent = format(remaining);
+    timer.classList.remove('warning', 'critical', 'finished');
+
+    if (remaining === 0) {
+      label.textContent = "TIME'S UP";
+      timer.classList.add('finished');
+      return;
+    }
+
+    label.textContent = 'EXAM TIME';
+
+    if (remaining <= 60) timer.classList.add('critical');
+    else if (remaining <= 5 * 60) timer.classList.add('warning');
+  }
+
+  function tick() {
+    remaining = Math.max(0, Math.ceil((endAt - Date.now()) / 1000));
+    render();
+
+    if (remaining <= 0) {
+      running = false;
+      clearInterval(interval);
+      interval = null;
+      try { document.title = "TIME'S UP — Exam Timer"; } catch(e) {}
+    }
+  }
+
+  function start() {
+    if (remaining <= 0) reset();
+    running = true;
+    endAt = Date.now() + remaining * 1000;
+    clearInterval(interval);
+    interval = setInterval(tick, 200);
+    tick();
+  }
+
+  function pause() {
+    if (!running) return;
+    tick();
+    running = false;
+    clearInterval(interval);
+    interval = null;
+  }
+
+  function reset() {
+    running = false;
+    clearInterval(interval);
+    interval = null;
+    remaining = TOTAL;
+    render();
+    document.title = "60 Minute Exam Timer";
+  }
+
+  document.getElementById('start').onclick = start;
+  document.getElementById('pause').onclick = pause;
+  document.getElementById('reset').onclick = reset;
+
+  document.addEventListener('keydown', e => {
+    if (e.code === 'Space') {
+      e.preventDefault();
+      running ? pause() : start();
+    }
+    if (e.key.toLowerCase() === 'r') reset();
+  });
+
+  render();
+})();
+</script>
+</body>
+</html>
